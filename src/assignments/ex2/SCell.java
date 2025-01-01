@@ -1,58 +1,69 @@
 package assignments.ex2;
-// Add your documentation below:
+import java.util.ArrayList;
 
+//SCell represents a single cell in a spreadsheet. Each cell can store text,
+// numbers, or formulas and supports computation of dependencies and order of evaluation.
 public class SCell implements Cell {
-    private String line;
-    private int type;
+    private String line; //A String storing the content of the cell.
+    private int type; //An int representing the type of the cell
+    // (for examples 1 for text, 2 for numbers, 3 for formulas).
+    private int order; //An int representing the order of computation for this cell.
 
 
+    //Initializes the cell with the given string.
+    //Determines the type and order of the cell during initialization
     public SCell(String s) {
         setData(s);
+        type = whatType(s);
+        order = computeOrder(s);
     }
 
+    //Returns the computation order of the cell.
     @Override
     public int getOrder() {
-        if (isNumber(line) || isText(line)) {
-            return 0;
-        }
-
-
-        return -1;
+        return order;
     }
 
-    //@Override
+
+    //Returns the cell's content as a string.
     @Override
     public String toString() {
         return getData();
     }
 
+    // Sets the content of the cell.
     @Override
-public void setData(String s) {
+    public void setData(String s) {
         line = s;
     }
+
+    //Returns the content of the cell.
     @Override
     public String getData() {
         return line;
     }
 
+    //Returns the type of the cell.
     @Override
     public int getType() {
         return type;
     }
 
+    //Sets the type of the cell.
     @Override
     public void setType(int t) {
         type = t;
     }
 
+    // Sets the computation order of the cell.
     @Override
     public void setOrder(int t) {
-        // Add your code here
+        order = t;
 
     }
 
-    // check if the text are number.
-    public boolean isNumber(String text) {
+    // Checks if the given string is a valid number.
+    public static boolean isNumber(String text) {
         boolean ans;
         try {
             Double.parseDouble(text);
@@ -64,6 +75,7 @@ public void setData(String s) {
         return ans;
     }
 
+    //Checks if the given string is a not number and not formula.
     public boolean isText(String text) {
         boolean ans = true;
         if (isNumber(text))
@@ -74,14 +86,20 @@ public void setData(String s) {
         return ans;
     }
 
+    //Checks if the given string is a valid formula.
     public boolean isForm(String text1) {
+        if (text1 == null || text1 == "")// not empty or null
+            return false;
+
         if (text1.charAt(0) != '=') // must be '=' in the first char
             return false;
 
-        if (isNumber(text1.substring(1, text1.length()))) // if the formula only number, then it is valid.
+        // if the formula only number, then it is valid.
+        if (isNumber(text1.substring(1, text1.length())))
             return true;
 
-        if (text1.charAt(1) == '(' && lastChar(text1) == ')' && text1.length() > 3)//If the formula contains only parentheses and a number, then it is valid.
+        //If the formula contains only parentheses and a number, then it is valid.
+        if (text1.charAt(1) == '(' && lastChar(text1) == ')' && text1.length() > 3)
             if (isNumber(text1.substring(2, text1.length() - 1))) {
                 return true;
             }
@@ -90,40 +108,41 @@ public void setData(String s) {
         return false;
     }
 
-    private boolean goodFormula(String s){
+    //Checks if the given formula is syntactically valid.
+    private boolean goodFormula(String s) {
         int sum;
-        char [] c = {'+','-','*','/','(',')','.'};
-        char [] c1 = {'+','-','*','/','(','.'};
-        char [] c2 = {'+','-','*','/',')','.'};
-        char [] c3 = {'+','-','*','/'};
-        for (int i=0; i<c1.length;i++){
+        char[] c = {'+', '-', '*', '/', '(', ')', '.'};
+        char[] c1 = {'+', '-', '*', '/', '(', '.'};
+        char[] c2 = {'+', '-', '*', '/', ')', '.'};
+        char[] c3 = {'+', '-', '*', '/'};
+        for (int i = 0; i < c1.length; i++) {
             if (lastChar(s) == c1[i] || s.charAt(0) == c2[i]) //If there is an operator from the array `c1` at the end, then it is invalid.
                 return false;
         }
         //Iterate over all the characters and check if a character is neither a digit nor an operator from `c`.
         // If such a character is found, the formula is invalid.
-        for (int i=0; i< s.length();i++){
+        for (int i = 0; i < s.length(); i++) {
             sum = 0;
-            for (int j=0;j<c.length;j++) {
+            for (int j = 0; j < c.length; j++) {
                 if (s.charAt(i) == c[j])
                     sum = 1;
             }
-            if (!Character.isDigit(s.charAt(i)) && sum == 0)
+            if (!Character.isDigit(s.charAt(i)) && sum == 0 && !Character.isLetter(s.charAt(i)))
                 return false;
 
         }
         //If there is a mathematical operator and the character before or after it is invalid, then the formula is invalid.
-        for (int i =1; i< s.length()-1;i++){
-            for (int j =0; j<c3.length;j++){
-                if (s.charAt(i) == c3[j] && ((!Character.isDigit(s.charAt(i-1)) && s.charAt(i-1) != ')') || (!Character.isDigit(s.charAt(i+1)) && s.charAt(i+1) != '(')))
+        for (int i = 1; i < s.length() - 1; i++) {
+            for (int j = 0; j < c3.length; j++) {
+                if (s.charAt(i) == c3[j] && ((!Character.isDigit(s.charAt(i - 1)) && s.charAt(i - 1) != ')') || (!Character.isDigit(s.charAt(i + 1)) && !Character.isLetter(s.charAt(i)) && s.charAt(i + 1) != '(')))
                     return false;
             }
         }
 
         //If there are parentheses with nothing between them, or if the number of opening parentheses does not match the number of closing parentheses,
         // then the formula is invalid.
-        sum =0;
-        for (int i =0; i<s.length();i++) {
+        sum = 0;
+        for (int i = 0; i < s.length(); i++) {
             if (s.charAt(i) == '(') {
                 sum++;
                 if (s.charAt(i + 1) == ')')
@@ -135,7 +154,10 @@ public void setData(String s) {
         if (sum != 0)
             return false;
 
-        for (int i = 0; i<s.length();i++){
+        // Iterate through each character in the string, check if the character is a letter,
+        // if the letter is the second to last or third to last character Get the next character,
+        // Return false if it's not a digit.
+        for (int i = 0; i < s.length(); i++) {
             char x = s.charAt(i);
             if (Character.isLetter(x)) {
                 if (i + 1 == s.length() - 1) {
@@ -144,30 +166,38 @@ public void setData(String s) {
                         return false;
                     }
                 }
-                if ( i + 2 == s.length() - 1){
+                if (i + 2 == s.length() - 1) {
                     char y = s.charAt(i + 1);
                     char z = s.charAt(i + 2);
                     if (!Character.isDigit(y) || (!Character.isDigit(z) && z != ')')) {
                         return false;
                     }
                 }
+                // If the letter is followed by more characters
                 if (i + 2 < s.length() - 1) {
                     char y = s.charAt(i + 1);
                     char z = s.charAt(i + 2);
                     char a = s.charAt(i + 3);
+                    // If the character after the letter is not a digit, return false.
                     if (!Character.isDigit(y)) {
                         return false;
                     }
+                    // if z isn't digit.
                     if (!Character.isDigit(z)) {
                         int count = 0;
+                        // Iterate through the array 'c2' to check if 'z' is a valid operator
                         for (int j = 0; j < c2.length - 1; j++) {
-                            if (c2[j] == z ){
+                            if (c2[j] == z) {
                                 count++;
                             }
                         }
-                        if (count == 0){return false;}
+                        // If 'z' is not a valid operator (count is 0), the string is invalid
+                        if (count == 0) {
+                            return false;
+                        }
                     }
-                    if (Character.isDigit(a)) {
+                    // max index can be 99
+                    if (Character.isDigit(z) && Character.isDigit(a)) {
                         return false;
                     }
                 }
@@ -178,35 +208,103 @@ public void setData(String s) {
     }
 
     // return the last char is the string
-    private char lastChar (String s){
-        return s.charAt(s.length()-1);
+    private char lastChar(String s) {
+        return s.charAt(s.length() - 1);
     }
 
+    //Validates if the given string is a reference to another cell.
     public static boolean CellReference(String s) {
-        if (!s.matches(".*[a-zA-Z].*")){
+        // If no letters are found, it cannot be a valid cell reference.
+        if (!s.matches(".*[a-zA-Z].*")) {
             return false;
         }
-        for (int i = 0; i<s.length();i++){
-           char x = s.charAt(i);
-           if (Character.isLetter(x)) {
-               if (i + 1 == s.length() - 1 || i + 2 == s.length() - 1) {
-                   char y = s.charAt(i + 1);
-                   return Character.isDigit(y);
-               }
-               if (i + 2 < s.length() - 1) {
-                   char y = s.charAt(i + 1);
-                   char z = s.charAt(i + 2);
-                   char a = s.charAt(i + 3);
-                   if (!Character.isDigit(y)) {
-                       return false;
-                   }
-                   if (Character.isDigit(y) && Character.isDigit(z) && Character.isDigit(a)) {
-                       return false;
-                   }
-               }
-           }
+        // Iterate through each character in the string, check if the character is a letter,
+        // if the letter is the second to last or third to last character Get the next character,
+        // Return true if it's a digit.
+        for (int i = 0; i < s.length(); i++) {
+            char x = s.charAt(i);
+            if (Character.isLetter(x)) {
+                if (i + 1 == s.length() - 1 || i + 2 == s.length() - 1) {
+                    char y = s.charAt(i + 1);
+                    return Character.isDigit(y);
+                }
+                // If the letter is followed by more characters
+                if (i + 2 < s.length() - 1) {
+                    char y = s.charAt(i + 1);
+                    char z = s.charAt(i + 2);
+                    char a = s.charAt(i + 3);
+                    // If the character after the letter is not a digit, return false.
+                    if (!Character.isDigit(y)) {
+                        return false;
+                    }
+                    // If there are three consecutive digits after the letter, return false.
+                    if (Character.isDigit(y) && Character.isDigit(z) && Character.isDigit(a)) {
+                        return false;
+                    }
+                }
+            }
 
         }
-       return true;
+        return true;
     }
+
+    //Determines the type of the content
+    public int whatType(String s) {
+        if (isText(s)) {
+            return 1;
+        }
+        if (isNumber(s)) {
+            return 2;
+        }
+        if (isForm(s)) {
+            return 3;
+        }
+        return -2;
+    }
+
+    //arses the formula to extract cell references that the current cell depends on.
+    private ArrayList<String> Dependencies(String form) {
+        ArrayList<String> depen = new ArrayList<>();
+        form = form.substring(1); // Remove the '=' at the beginning of the formula.
+        // // Split the formula into array based on mathematical operators and parentheses
+        String[] parts = form.split("[+\\-*/()]");
+        // Iterate through each part of the formula, check if the part is a valid cell reference,
+        // Add the valid cell reference to the dependencies list
+        for (int i = 0; i < parts.length; i++) {
+            if (CellReference(parts[i])) {
+                depen.add(parts[i]);
+            }
+        }
+        return depen;
+    }
+
+    //Computes the natural order of this cell based on its dependencies.
+    private int computeOrder(String s) {
+        // If the cell content is null or empty, the computation order is 0
+        if (line == null || line.isEmpty()) {
+            return 0;
+        }
+        // If the cell content is a number or plain text, it doesn't depend on other cells.
+        if (isNumber(line) || isText(line)) {
+            return 0;
+        }
+        if (isForm(line)) {
+            // Get Arraylist of all dependencies (cell references) in the formula.
+            ArrayList<String> depen1 = Dependencies(line);
+            int maxorder = 0; // Initialize the maximum order as 0
+
+            // Iterate through the list of dependencies,Create an SCell object for each dependent cell
+            // Get the computation order of the dependent cell, and Update the maximum order based on the current dependent cell.
+            for (int i = 0; i < depen1.size(); i++) {
+                SCell dependentCell = new SCell(depen1.get(i));
+                int order = dependentCell.getOrder();
+                maxorder = Math.max(maxorder, order);
+            }
+            return maxorder + 1; // The order of this cell is 1 plus the maximum order of its dependencies.
+
+        }
+        // If the content doesn't match any valid type, return -1 (indicates an error)
+        return -1;
+    }
+
 }
