@@ -201,6 +201,7 @@ public class Ex2Sheet implements Sheet {
 
         for (int i = 0; i < parts.length; i++) {
             String part = parts[i].trim();
+            part = part.toUpperCase();
 
             if (SCell.isNumber(part)) {
                 numbers.add(Double.parseDouble(part));
