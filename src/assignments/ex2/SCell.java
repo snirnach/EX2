@@ -8,6 +8,7 @@ public class SCell implements Cell {
     private int type; //An int representing the type of the cell
     // (for examples 1 for text, 2 for numbers, 3 for formulas).
     private int order; //An int representing the order of computation for this cell.
+    private ArrayList<String> depens;
 
 
     //Initializes the cell with the given string.
@@ -16,6 +17,7 @@ public class SCell implements Cell {
         setData(s);
         type = whatType(s);
         order = computeOrder(s);
+        depens = new ArrayList<>();
     }
 
     //Returns the computation order of the cell.
@@ -76,7 +78,7 @@ public class SCell implements Cell {
     }
 
     //Checks if the given string is a not number and not formula.
-    public boolean isText(String text) {
+    public static boolean isText(String text) {
         boolean ans = true;
         if (isNumber(text))
             ans = false;
@@ -85,31 +87,133 @@ public class SCell implements Cell {
 
         return ans;
     }
+//    public static boolean isForm(String text1) {
+//        if (text1 == null || text1.isEmpty()) {
+//            return false; // Invalid if null or empty
+//        }
+//
+//        if (text1.charAt(0) != '=') {
+//            return false; // Formulas must start with '='
+//        }
+//
+//        String formula = text1.substring(1); // Remove '='
+//        if (formula.isEmpty()) {
+//            return false; // Invalid if no content after '='
+//        }
+//
+//        return goodFormula(formula); // Check if the rest of the formula is valid
+//    }
+//
+//    private static boolean goodFormula(String formula) {
+//        // Check for invalid characters
+//        if (!formula.matches("[A-Za-z0-9+\\-*/().]*")) {
+//            return false; // Invalid character
+//        }
+//
+//        // Check for balanced parentheses
+//        int balance = 0;
+//        for (int i = 0; i < formula.length(); i++) {
+//            char ch = formula.charAt(i);
+//            if (ch == '(') balance++;
+//            if (ch == ')') balance--;
+//            if (balance < 0) return false; // More closing parentheses than opening
+//        }
+//        if (balance != 0) return false; // Unbalanced parentheses
+//
+//        // Check for valid structure (e.g., A1+2 or 3*(A2+B3))
+//        if (!formula.matches("([A-Za-z][0-9]+|\\d+)([+\\-*/]([A-Za-z][0-9]+|\\d+))*")) {
+//            return false; // Invalid structure
+//        }
+//
+//        return true; // Formula is valid
+//    }
 
-    //Checks if the given string is a valid formula.
-    public boolean isForm(String text1) {
-        if (text1 == null || text1 == "")// not empty or null
-            return false;
+   // Checks if the given string is a valid formula.
+   public static boolean isForm(String text) {
+       // בדיקה אם המחרוזת ריקה או לא מתחילה ב"="
+       if (text == null || text.isEmpty() || text.charAt(0) != '=') {
+           return false;
+       }
 
-        if (text1.charAt(0) != '=') // must be '=' in the first char
-            return false;
+       // הסרת סימן "=" כדי לבדוק את התוכן האמיתי של הנוסחה
+       String formula = text.substring(1);
+       formula = formula.replaceAll("\\s+", "");
 
-        // if the formula only number, then it is valid.
-        if (isNumber(text1.substring(1, text1.length())))
-            return true;
+       // בדיקה אם כל הנוסחה היא מספר (מקרה של =5 או =(3))
+       if (SCell.isNumber(formula)) {
+           return true;
+       }
 
-        //If the formula contains only parentheses and a number, then it is valid.
-        if (text1.charAt(1) == '(' && lastChar(text1) == ')' && text1.length() > 3)
-            if (isNumber(text1.substring(2, text1.length() - 1))) {
+       // תווים מותרים: ספרות, אותיות (A-Z), אופרטורים, סוגריים
+       char[] validOperators = {'+', '-', '*', '/', '(', ')'};
+
+       // רשימת אופרטורים לבדיקה תחבירית
+       char[] binaryOperators = {'+', '-', '*', '/'};
+
+       boolean lastWasOperator = true; // משתנה לבדוק אם התו הקודם היה אופרטור
+       int parenthesesCount = 0; // ספירת פתיחת וסגירת סוגריים
+
+       for (int i = 0; i < formula.length(); i++) {
+           char c = formula.charAt(i);
+
+           // אם התו הוא ספרה, אין בעיה
+           if (Character.isDigit(c)) {
+               lastWasOperator = false;
+           }
+           // אם התו הוא אות (בדיקה עבור הפניות לתאים כמו "A1")
+           else if (Character.isLetter(c)) {
+               if (i + 1 < formula.length() && Character.isDigit(formula.charAt(i + 1))) {
+                   lastWasOperator = false; // ספרה אחרי אות היא חוקית
+               } else {
+                   return false; // אות בלי ספרה אחריה אינה חוקית (למשל "=A+3")
+               }
+           }
+           // אם זה אופרטור, יש לוודא שאין 2 אופרטורים ברצף
+           else if (containsChar(binaryOperators, c)) {
+               if (lastWasOperator) {
+                   return false; // אופרטור אחרי אופרטור אינו חוקי (למשל: "=5++3")
+               }
+               lastWasOperator = true;
+           }
+           // אם זה סוגריים, לבדוק שהם מאוזנים
+           else if (c == '(') {
+               parenthesesCount++;
+               lastWasOperator = true; // חייב להיות מספר או אות אחרי סוגריים פתוחים
+           } else if (c == ')') {
+               parenthesesCount--;
+               if (parenthesesCount < 0) {
+                   return false; // יותר סוגריים סגורים מפתוחים
+               }
+               lastWasOperator = false; // חייב להיות אופרטור אחרי סוגריים סגורים
+           }
+           // תו שאינו חוקי
+           else {
+               return false;
+           }
+       }
+
+       // לוודא שאין יותר סוגריים פתוחים מאשר סגורים
+       if (parenthesesCount != 0) {
+           return false;
+       }
+
+       // לוודא שהנוסחה לא מסתיימת באופרטור (למשל "=5+")
+       return !lastWasOperator;
+   }
+
+    // פונקציה עזר לבדיקה אם תו נמצא במערך
+    private static boolean containsChar(char[] array, char target) {
+        for (char c : array) {
+            if (c == target) {
                 return true;
             }
-        if (goodFormula(text1.substring(1, text1.length())))
-            return true;
+        }
         return false;
     }
 
+
     //Checks if the given formula is syntactically valid.
-    private boolean goodFormula(String s) {
+    private static boolean goodFormula(String s) {
         int sum;
         char[] c = {'+', '-', '*', '/', '(', ')', '.'};
         char[] c1 = {'+', '-', '*', '/', '(', '.'};
@@ -127,7 +231,7 @@ public class SCell implements Cell {
                 if (s.charAt(i) == c[j])
                     sum = 1;
             }
-            if (!Character.isDigit(s.charAt(i)) && sum == 0 && !Character.isLetter(s.charAt(i)))
+            if (!Character.isDigit(s.charAt(i)) && sum == 0 && !Character.isLetter(s.charAt(i))&&!Character.isLowerCase(s.charAt(i)))
                 return false;
 
         }
@@ -207,8 +311,8 @@ public class SCell implements Cell {
         return true;
     }
 
-    // return the last char is the string
-    private char lastChar(String s) {
+     //return the last char is the string
+    private static char lastChar(String s) {
         return s.charAt(s.length() - 1);
     }
 
@@ -263,8 +367,11 @@ public class SCell implements Cell {
     }
 
     //arses the formula to extract cell references that the current cell depends on.
-    private ArrayList<String> Dependencies(String form) {
+   public static ArrayList<String> Dependencies(String form) {
         ArrayList<String> depen = new ArrayList<>();
+       if (form == null || form == "")
+           return depen;
+       if (form.charAt(0)=='=')
         form = form.substring(1); // Remove the '=' at the beginning of the formula.
         // // Split the formula into array based on mathematical operators and parentheses
         String[] parts = form.split("[+\\-*/()]");

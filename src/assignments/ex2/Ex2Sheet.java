@@ -1,25 +1,21 @@
+
 package assignments.ex2;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
-import java.util.LinkedList;
-// Add your documentation below:
 
 public class Ex2Sheet implements Sheet {
     private Cell[][] table;
-    // Add your code here
 
-    // ///////////////////
     public Ex2Sheet(int x, int y) {
         table = new SCell[x][y];
-        for(int i=0;i<x;i=i+1) {
-            for(int j=0;j<y;j=j+1) {
+        for (int i = 0; i < x; i = i + 1) {
+            for (int j = 0; j < y; j = j + 1) {
                 table[i][j] = new SCell("");
             }
         }
         eval();
     }
+
     public Ex2Sheet() {
         this(Ex2Utils.WIDTH, Ex2Utils.HEIGHT);
     }
@@ -27,8 +23,10 @@ public class Ex2Sheet implements Sheet {
     @Override
     public String value(int x, int y) {
         String ans = Ex2Utils.EMPTY_CELL;
-        Cell c = get(x,y);
-        if(c!=null) {ans = c.getData();}
+        Cell c = get(x, y);
+        if (c != null) {
+            ans = c.getData();
+        }
         return ans;
     }
 
@@ -40,10 +38,10 @@ public class Ex2Sheet implements Sheet {
     @Override
     public Cell get(String cords) {
         Cell ans = null;
-        if (cords != null){
+        if (cords != null) {
             int x = CellEntry.letterToNumber(cords.charAt(0));
             int y = Integer.parseInt(cords.substring(1));
-            ans = get(x,y);
+            ans = get(x, y);
         }
         return ans;
     }
@@ -52,29 +50,32 @@ public class Ex2Sheet implements Sheet {
     public int width() {
         return table.length;
     }
+
     @Override
     public int height() {
         return table[0].length;
     }
+
     @Override
     public void set(int x, int y, String s) {
         Cell c = new SCell(s);
         table[x][y] = c;
     }
+
     @Override
     public void eval() {
         int[][] dd = depth();
-        for (int i=0; i<width(); i++) {
+        for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
-               set(i,j , eval(i, j));
+                set(i, j, eval(i, j));
             }
         }
     }
 
     @Override
     public boolean isIn(int xx, int yy) {
-        boolean ans = xx>=0 && yy>=0;
-        if (width() <= xx || height() <=yy)
+        boolean ans = xx >= 0 && yy >= 0;
+        if (width() <= xx || height() <= yy)
             ans = false;
         return ans;
     }
@@ -82,10 +83,10 @@ public class Ex2Sheet implements Sheet {
     @Override
     public int[][] depth() {
         int[][] ans = new int[width()][height()];
-        for (int i=0; i<width(); i++){
-            for (int j=0; j<height(); j++){
-             int depth = table[i][j].getOrder();
-             ans[i][j] = depth;
+        for (int i = 0; i < width(); i++) {
+            for (int j = 0; j < height(); j++) {
+                int depth = table[i][j].getOrder();
+                ans[i][j] = depth;
             }
         }
         return ans;
@@ -105,17 +106,17 @@ public class Ex2Sheet implements Sheet {
                 }
 
                 String[] data = line.split(",", 3);
-                if ( data.length < 3)
+                if (data.length < 3)
                     continue;
 
                 try {
-                  int a = Integer.parseInt(data[0]);
-                  int b = Integer.parseInt(data[1]);
-                  String c = data[2];
-                  if (isIn(a,b))
-                      set(a,b,c);
+                    int a = Integer.parseInt(data[0]);
+                    int b = Integer.parseInt(data[1]);
+                    String c = data[2];
+                    if (isIn(a, b))
+                        set(a, b, c);
                 } catch (NumberFormatException e) {
-                   continue;
+                    continue;
                 }
             }
         }
@@ -124,213 +125,209 @@ public class Ex2Sheet implements Sheet {
 
     @Override
     public void save(String fileName) throws IOException {
-        // Add your code here
-
-        /////////////////////
-    }
-
-    @Override
-    public String eval(int x, int y) {
-        String ans = Ex2Utils.EMPTY_CELL;
-        Cell c = get(x,y);
-        if(c!=null && c.toString() != "") {
-            if (c.toString().matches("-?\\d+(\\.\\d+)?")){
-                ans = String.valueOf(get(x,y).toString());
-                c.setType(2);
-                return ans;
-            }
-           double value = computeForm(get(x, y).toString());
-            ans = String.valueOf(value);
-            c.setType(3);
-        }
-        return ans;
-        }
-
-        public void clearCells() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+            writer.write("I2CS ArielU: SpreadSheet (Ex2) assignment - this line should be ignored\n");
             for (int i = 0; i < width(); i++) {
                 for (int j = 0; j < height(); j++) {
-                    set(i, j, "");
+                    String value = table[i][j].getData();
+                    if (!value.equals(Ex2Utils.EMPTY_CELL)) {
+                        writer.write(i + "," + j + "," + value + "\n");
+                    }
                 }
             }
         }
+    }
+    @Override
+    public String eval(int x, int y) {
+        if (!isIn(x, y)) return "ERR_OUT_OF_BOUNDS";
 
-    public Double computeForm(String form) {
-        form = form.substring(1);
+        Cell c = get(x, y);
+        if (c == null || c.getData() == null || c.getData().isEmpty()) {
+            return Ex2Utils.EMPTY_CELL;
+        }
+
+        String data = c.getData();
+
+        if (SCell.isNumber(data)) {
+            c.setType(2);
+            return data;
+        }
+
+        if (SCell.isText(data)) {
+            c.setType(1);
+            return data;
+        }
+
+        if (SCell.isForm(data)) {
+            if (hasCycle(data, x, y)) { // בדיקה האם קיימת מחזוריות
+                c.setType(-1);
+                return "ERR_CYCLE_FORM";
+            }
+
+            try {
+                double result = computeForm(data.substring(1), x, y); // מסירים '='
+                c.setType(3);
+                return String.valueOf(result);
+            } catch (Exception e) {
+                return "ERR_FORM_FORMAT";
+            }
+        }
+
+        return "ERR_UNKNOWN";
+    }
+
+    public void clearCells() {
+        for (int i = 0; i < width(); i++) {
+            for (int j = 0; j < height(); j++) {
+                set(i, j, "");
+            }
+        }
+    }
+
+    public Double computeForm(String form, int x, int y) {
+        if (form == null || form.isEmpty()) return 0.0;
+
+
         if (SCell.isNumber(form)) {
-            String ans = form.replaceAll("[\\(\\)]", "");
-            return Double.parseDouble(ans);
+            return Double.parseDouble(form);
         }
-        int indexf = 0,indexp = 0,counter = 0;
-        String part = form;
-        ArrayList<Double> num = new ArrayList<>();
-        ArrayList<Character> operator = new ArrayList<>();
-        LinkedList<String> list = new LinkedList<>();
+
+        ArrayList<Double> numbers = new ArrayList<>();
+        ArrayList<Character> operators = new ArrayList<>();
 
 
-        while (indexf < form.length()-1) {
-            if (Character.isLetter(part.charAt(0))) {
-                indexp = part(part) + 1;
-                indexf = indexf + indexp;
-                part = part.substring(0, indexp);
-                num.add(mainOP(part));
-                if (indexf != form.length() - 1) {
-                    if (Character.isDigit(form.charAt(indexf)))
-                        indexf++;
-                    operator.add(form.charAt(indexf));
-                    part = form.substring(indexf + 1);
-                }
-            }
-            if (part.charAt(0)!= '(') {
-                indexp = part(part) + 1;
-                indexf = indexf + indexp;
-                part = part.substring(0, indexp);
-                num.add(mainOP(part));
-                if (indexf != form.length() - 1) {
-                    if (Character.isDigit(form.charAt(indexf)))
-                        indexf++;
-                    operator.add(form.charAt(indexf));
-                    part = form.substring(indexf + 1);
-                }
-            }
-            if (part.charAt(0) == '(') {
-                indexp = part(part);
-                indexf = indexf + indexp;
-                part = part.substring(0, indexp+1);
-                num.add(mainOP(part));
-                if (indexf != form.length() - 1) {
-                    while (Character.isDigit(form.charAt(indexf)) || form.charAt(indexf) == ')')
-                        indexf++;
-                    operator.add(form.charAt(indexf));
-                    part = form.substring(indexf + 1);
-                }
-            }}
+        String[] parts = form.split("(?<=[-+*/])|(?=[-+*/])");
 
-        if (num.size() == 1){
-            return num.get(0);
-        }
-        for (int i=0; i<operator.size();i++){
-            if (operator.get(i) == '*' || operator.get(i) == '/'){
-                char op = operator.get(i);
-                if (op == '*')
-                    num.set(i,num.get(i) * num.get(i+1));
-                if (op == '/')
-                    num.set(i,num.get(i) / num.get(i+1));
-                num.remove(i+1);
-                operator.remove(i);
+
+        for (int i = 0; i < parts.length; i++) {
+            String part = parts[i].trim();
+
+            if (SCell.isNumber(part)) {
+                numbers.add(Double.parseDouble(part));
+            } else if (SCell.CellReference(part)) {
+                int refX = CellEntry.letterToNumber(part.charAt(0));
+                int refY = Integer.parseInt(part.substring(1));
+                String refValue = eval(refX, refY);
+                if (SCell.isNumber(refValue)) {
+                    numbers.add(Double.parseDouble(refValue));
+                } else {
+                    throw new IllegalArgumentException("שגיאה: התא " + part + " אינו מכיל מספר");
+                }
+            } else if (part.length() == 1 && isOperator(part.charAt(0))) {
+                operators.add(part.charAt(0));
             }
         }
-        int j =0;
-        while (num.size() > 1){
-            char op = operator.get(j);
-            if (op == '+')
-                num.set(j,num.get(j) + num.get(j+1));
-            if (op == '-')
-                num.set(j,num.get(j) - num.get(j+1));
-            num.remove(j+1);
-            operator.remove(j);
+
+
+        for (int i = 0; i < operators.size(); i++) {
+            char op = operators.get(i);
+            if (op == '*' || op == '/') {
+                double left = numbers.get(i);
+                double right = numbers.get(i + 1);
+                double result = (op == '*') ? left * right : left / right;
+
+                numbers.set(i, result);
+                numbers.remove(i + 1);
+                operators.remove(i);
+                i--; //
+            }
         }
-        return num.get(0);
+
+        // חישוב חיבור וחיסור
+        for (int i = 0; i < operators.size(); i++) {
+            char op = operators.get(i);
+            double left = numbers.get(i);
+            double right = numbers.get(i + 1);
+            double result = (op == '+') ? left + right : left - right;
+
+            numbers.set(i, result);
+            numbers.remove(i + 1);
+            operators.remove(i);
+            i--; // חזרה אחורה
+        }
+
+        return numbers.get(0);
+    }
+    private boolean isOperator(char c) {
+        return c == '+' || c == '-' || c == '*' || c == '/';
+    }
+    public static boolean isForm(String text) {
+        if (text == null || text.isEmpty() || text.charAt(0) != '=') {
+            return false;
+        }
+
+        String formula = text.substring(1);
+        formula = formula.replaceAll("\\s+", "");
+
+        // אם זו רק ספרה אחת
+        if (SCell.isNumber(formula)) {
+            return true;
+        }
+
+        // אם זה ביטוי מתמטי חוקי (מספרים, אותיות, אופרטורים)
+        return formula.matches("[A-Za-z0-9+\\-*/().]+");
     }
 
-    private Double mainOP(String s){
+
+    private boolean hasCycle(String s, int x, int y) {
         if (s == null || s.isEmpty()) {
-            return 0.0;
-        }
-            int sum = 0;
-            for (int i = 0; i < s.length(); i++) {
-                if (s.charAt(i) == '(')
-                    sum++;
-                if (s.charAt(i) == ')')
-                    sum--;
-                if (sum == 0 && (s.charAt(i) == '/' || s.charAt(i) == '*')) {
-                    Double p1 = mainOP(s.substring(0, i));
-                    Double p2 = mainOP(s.substring(i + 1));
-                    char op = s.charAt(i);
-                    if (op == '*') {
-                        return p1 * p2;
-                    }
-                    if (op == '/')
-                        return p1 / p2;
-
-                }
-            }
-
-
-            sum = 0;
-            for (int i = 0; i < s.length(); i++) {
-                if (s.charAt(i) == '(')
-                    sum++;
-                if (s.charAt(i) == ')')
-                    sum--;
-                if (sum == 0 && (s.charAt(i) == '-' || s.charAt(i) == '+')) {
-                    Double p3 = mainOP(s.substring(0, i));
-                    Double p4 = mainOP(s.substring(i + 1));
-                    char op = s.charAt(i);
-                    if (op == '+') {
-                        return p3 + p4;
-                    }
-                    if (op == '-')
-                        return p3 - p4;
-                }
-            }
-
-            sum = 0;
-            int first = 0;
-            for (int i = 0; i < s.length(); i++) {
-                if (s.charAt(i) == '(') {
-                    sum++;
-                    if (sum == 1)
-                        first = i;
-                }
-                if (s.charAt(i) == ')') {
-                    sum--;
-                    if (sum == 0) {
-                        double p5 = mainOP(s.substring(first + 1, i));
-                        return p5;
-                    }
-
-                }
-            }
-        if (!s.isEmpty() && Character.isLetter(s.charAt(0))) {
-           Cell ref = get(s);
-            double p6 = mainOP(ref.getData());
+            return false;
         }
 
+        String cellRef = (char) ('A' + x) + String.valueOf(y);
+        s = s.toUpperCase(); // Ensure all formulas are treated as uppercase
+        if (s.equals("=" + cellRef)) { // Direct self-reference
+            return true;
+        }
 
-        return Double.parseDouble(s);
+        if (s.charAt(0) == '=') {
+            s = s.substring(1); // Remove '=' for easier processing
+        }
+
+        if (SCell.isNumber(s) || SCell.isText(s)) {
+            return false; // A number or text cannot create a cycle
+        }
+
+        if (isForm(s)) {
+            if (!SCell.CellReference(s)) {
+                return false; // If not a valid reference, it's not a cycle
+            }
+
+            // Get dependent cell references
+            ArrayList<String> dependencies = SCell.Dependencies(s);
+
+            // Check if the current cell reference appears in dependencies
+            for (int i = 0; i < dependencies.size(); i++) {
+                if (dependencies.get(i).equals(cellRef)) {
+                    return true; // Found a circular reference
+                }
+            }
+
+            // Iterate over dependencies and check if any forms a cycle
+            for (int i = 0; i < dependencies.size(); i++) {
+                String dep = dependencies.get(i);
+                int depX = CellEntry.letterToNumber(dep.charAt(0));
+                int depY = Integer.parseInt(dep.substring(1));
+
+                if (hasCycle(table[depX][depY].getData(), depX, depY)) {
+                    return true; // If any dependency forms a cycle, return true
+                }
+            }
+        }
+
+        return false;
     }
 
-    public int part (String s) {
-        int sum = 1;
-        if (s.charAt(0) == '(') {
-            for (int i = 1; i < s.length(); i++) {
-                if (s.charAt(i) == '(') {
-                    sum++;
-                }
-                if (s.charAt(i) == ')') {
-                    sum--;
-                }
-                if (sum == 0){
-                    return i;
-                }
-            }
-        }
 
-        if(Character.isDigit((s.charAt(0))) || s.charAt(0) == '-'){
-            for (int i =0; i<s.length();i++){
-                if (!Character.isDigit((s.charAt(i))) && s.charAt(i) != '.')
-                    return i -1;
-            }
-            return s.length()-1;
-        }
-
-        if (Character.isLetter((s.charAt(0)))){
-            for (int i = 1; i < s.length(); i++) {
-                if (!Character.isDigit((s.charAt(i)))){
-                    return i-1;
+    public static boolean hasDuplicates(ArrayList<String> dep) {
+        for (int i = 0; i < dep.size(); i++) {
+            for (int j = i + 1; j < dep.size(); j++) {
+                if (dep.get(i).equals(dep.get(j))) {
+                    return true;
                 }
             }
         }
-        return -1;
+        return false;
     }
 }
+
