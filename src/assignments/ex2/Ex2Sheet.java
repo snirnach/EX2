@@ -139,8 +139,6 @@ public class Ex2Sheet implements Sheet {
     }
     @Override
     public String eval(int x, int y) {
-        if (!isIn(x, y)) return "ERR_OUT_OF_BOUNDS";
-
         Cell c = get(x, y);
         if (c == null || c.getData() == null || c.getData().isEmpty()) {
             return Ex2Utils.EMPTY_CELL;
@@ -150,8 +148,15 @@ public class Ex2Sheet implements Sheet {
 
         if (SCell.isNumber(data)) {
             c.setType(2);
-            return data;
+            Double data1 = Double.parseDouble(data);
+            return String.valueOf(data1);
         }
+        if (data.charAt(0)=='(' && SCell.isNumber(data.substring(1, data.length()-1))){
+            Double data1 = Double.parseDouble(data.substring(1, data.length()-1));
+            c.setType(2);
+            return String.valueOf(data1);
+        }
+
 
         if (SCell.isText(data)) {
             c.setType(1);
@@ -159,22 +164,22 @@ public class Ex2Sheet implements Sheet {
         }
 
         if (SCell.isForm(data)) {
-            if (hasCycle(data, x, y)) { // בדיקה האם קיימת מחזוריות
+            if (hasCycle(data, x, y)) {
                 c.setType(-1);
                 return "ERR_CYCLE_FORM";
             }
 
-            try {
-                double result = computeForm(data.substring(1), x, y); // מסירים '='
+            double result = computeForm(data, x, y);
+            if (!Double.isInfinite(result)) {
                 c.setType(3);
                 return String.valueOf(result);
-            } catch (Exception e) {
-                return "ERR_FORM_FORMAT";
             }
         }
+        return "ERR_FORM_FORMAT";
+        }
 
-        return "ERR_UNKNOWN";
-    }
+
+
 
     public void clearCells() {
         for (int i = 0; i < width(); i++) {
@@ -185,8 +190,13 @@ public class Ex2Sheet implements Sheet {
     }
 
     public Double computeForm(String form, int x, int y) {
-        if (form == null || form.isEmpty()) return 0.0;
+        if (form == null || form.isEmpty()){
 
+            return Double.POSITIVE_INFINITY;
+        }
+                if (form.charAt(0) == '='){
+            form = form.substring(1);
+        }
 
         if (SCell.isNumber(form)) {
             return Double.parseDouble(form);
@@ -195,56 +205,69 @@ public class Ex2Sheet implements Sheet {
         ArrayList<Double> numbers = new ArrayList<>();
         ArrayList<Character> operators = new ArrayList<>();
 
-
-        String[] parts = form.split("(?<=[-+*/])|(?=[-+*/])");
+        form = form.replaceAll("\\s+", "");
+        String[] parts = form.split("((?=[-+*/])|(?<=[-+*/]))(?![^()]*\\))");
 
 
         for (int i = 0; i < parts.length; i++) {
-            String part = parts[i].trim();
+            String part = parts[i];
             part = part.toUpperCase();
 
             if (SCell.isNumber(part)) {
                 numbers.add(Double.parseDouble(part));
-            } else if (SCell.CellReference(part)) {
+            }
+            if (part.charAt(0) == '('){
+
+                numbers.add(computeForm(part.substring(1, part.length()-1), x,y));
+            }
+            if (SCell.CellReference(part)) {
                 int refX = CellEntry.letterToNumber(part.charAt(0));
                 int refY = Integer.parseInt(part.substring(1));
                 String refValue = eval(refX, refY);
                 if (SCell.isNumber(refValue)) {
                     numbers.add(Double.parseDouble(refValue));
-                } else {
-                    throw new IllegalArgumentException("שגיאה: התא " + part + " אינו מכיל מספר");
                 }
-            } else if (part.length() == 1 && isOperator(part.charAt(0))) {
-                operators.add(part.charAt(0));
             }
-        }
-
+                if (part.length() == 1 && isOperator(part.charAt(0))) {
+                    operators.add(part.charAt(0));
+                }
+            }
 
         for (int i = 0; i < operators.size(); i++) {
             char op = operators.get(i);
-            if (op == '*' || op == '/') {
-                double left = numbers.get(i);
-                double right = numbers.get(i + 1);
-                double result = (op == '*') ? left * right : left / right;
-
+            if (op == '*'){
+                double result = numbers.get(i) * numbers.get(i + 1);
                 numbers.set(i, result);
                 numbers.remove(i + 1);
                 operators.remove(i);
                 i--; //
             }
+                if (op == '/') {
+                    double result = numbers.get(i) / numbers.get(i + 1);
+                    numbers.set(i, result);
+                    numbers.remove(i + 1);
+                    operators.remove(i);
+                    i--; //
+            }
         }
 
-        // חישוב חיבור וחיסור
+
         for (int i = 0; i < operators.size(); i++) {
             char op = operators.get(i);
-            double left = numbers.get(i);
-            double right = numbers.get(i + 1);
-            double result = (op == '+') ? left + right : left - right;
-
-            numbers.set(i, result);
-            numbers.remove(i + 1);
-            operators.remove(i);
-            i--; // חזרה אחורה
+            if (op == '+'){
+                double result = numbers.get(i) + numbers.get(i + 1);
+                numbers.set(i, result);
+                numbers.remove(i + 1);
+                operators.remove(i);
+                i--; //
+            }
+            if (op == '-') {
+                double result = numbers.get(i) - numbers.get(i + 1);
+                numbers.set(i, result);
+                numbers.remove(i + 1);
+                operators.remove(i);
+                i--; //
+            }
         }
 
         return numbers.get(0);

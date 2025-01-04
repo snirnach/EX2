@@ -87,234 +87,94 @@ public class SCell implements Cell {
 
         return ans;
     }
-//    public static boolean isForm(String text1) {
-//        if (text1 == null || text1.isEmpty()) {
-//            return false; // Invalid if null or empty
-//        }
-//
-//        if (text1.charAt(0) != '=') {
-//            return false; // Formulas must start with '='
-//        }
-//
-//        String formula = text1.substring(1); // Remove '='
-//        if (formula.isEmpty()) {
-//            return false; // Invalid if no content after '='
-//        }
-//
-//        return goodFormula(formula); // Check if the rest of the formula is valid
-//    }
-//
-//    private static boolean goodFormula(String formula) {
-//        // Check for invalid characters
-//        if (!formula.matches("[A-Za-z0-9+\\-*/().]*")) {
-//            return false; // Invalid character
-//        }
-//
-//        // Check for balanced parentheses
-//        int balance = 0;
-//        for (int i = 0; i < formula.length(); i++) {
-//            char ch = formula.charAt(i);
-//            if (ch == '(') balance++;
-//            if (ch == ')') balance--;
-//            if (balance < 0) return false; // More closing parentheses than opening
-//        }
-//        if (balance != 0) return false; // Unbalanced parentheses
-//
-//        // Check for valid structure (e.g., A1+2 or 3*(A2+B3))
-//        if (!formula.matches("([A-Za-z][0-9]+|\\d+)([+\\-*/]([A-Za-z][0-9]+|\\d+))*")) {
-//            return false; // Invalid structure
-//        }
-//
-//        return true; // Formula is valid
-//    }
-
-   // Checks if the given string is a valid formula.
-   public static boolean isForm(String text) {
-       // בדיקה אם המחרוזת ריקה או לא מתחילה ב"="
-       if (text == null || text.isEmpty() || text.charAt(0) != '=') {
-           return false;
-       }
-
-       // הסרת סימן "=" כדי לבדוק את התוכן האמיתי של הנוסחה
-       String formula = text.substring(1);
-       formula = formula.replaceAll("\\s+", "");
-
-       // בדיקה אם כל הנוסחה היא מספר (מקרה של =5 או =(3))
-       if (SCell.isNumber(formula)) {
-           return true;
-       }
-
-       // תווים מותרים: ספרות, אותיות (A-Z), אופרטורים, סוגריים
-       char[] validOperators = {'+', '-', '*', '/', '(', ')'};
-
-       // רשימת אופרטורים לבדיקה תחבירית
-       char[] binaryOperators = {'+', '-', '*', '/'};
-
-       boolean lastWasOperator = true; // משתנה לבדוק אם התו הקודם היה אופרטור
-       int parenthesesCount = 0; // ספירת פתיחת וסגירת סוגריים
-
-       for (int i = 0; i < formula.length(); i++) {
-           char c = formula.charAt(i);
-
-           // אם התו הוא ספרה, אין בעיה
-           if (Character.isDigit(c)) {
-               lastWasOperator = false;
-           }
-           // אם התו הוא אות (בדיקה עבור הפניות לתאים כמו "A1")
-           else if (Character.isLetter(c)) {
-               if (i + 1 < formula.length() && Character.isDigit(formula.charAt(i + 1))) {
-                   lastWasOperator = false; // ספרה אחרי אות היא חוקית
-               } else {
-                   return false; // אות בלי ספרה אחריה אינה חוקית (למשל "=A+3")
-               }
-           }
-           // אם זה אופרטור, יש לוודא שאין 2 אופרטורים ברצף
-           else if (containsChar(binaryOperators, c)) {
-               if (lastWasOperator) {
-                   return false; // אופרטור אחרי אופרטור אינו חוקי (למשל: "=5++3")
-               }
-               lastWasOperator = true;
-           }
-           // אם זה סוגריים, לבדוק שהם מאוזנים
-           else if (c == '(') {
-               parenthesesCount++;
-               lastWasOperator = true; // חייב להיות מספר או אות אחרי סוגריים פתוחים
-           } else if (c == ')') {
-               parenthesesCount--;
-               if (parenthesesCount < 0) {
-                   return false; // יותר סוגריים סגורים מפתוחים
-               }
-               lastWasOperator = false; // חייב להיות אופרטור אחרי סוגריים סגורים
-           }
-           // תו שאינו חוקי
-           else {
-               return false;
-           }
-       }
-
-       // לוודא שאין יותר סוגריים פתוחים מאשר סגורים
-       if (parenthesesCount != 0) {
-           return false;
-       }
-
-       // לוודא שהנוסחה לא מסתיימת באופרטור (למשל "=5+")
-       return !lastWasOperator;
-   }
-
-    // פונקציה עזר לבדיקה אם תו נמצא במערך
-    private static boolean containsChar(char[] array, char target) {
-        for (char c : array) {
-            if (c == target) {
-                return true;
-            }
-        }
-        return false;
-    }
 
 
-    //Checks if the given formula is syntactically valid.
-    private static boolean goodFormula(String s) {
-        int sum;
-        char[] c = {'+', '-', '*', '/', '(', ')', '.'};
-        char[] c1 = {'+', '-', '*', '/', '(', '.'};
-        char[] c2 = {'+', '-', '*', '/', ')', '.'};
-        char[] c3 = {'+', '-', '*', '/'};
-        for (int i = 0; i < c1.length; i++) {
-            if (lastChar(s) == c1[i] || s.charAt(0) == c2[i]) //If there is an operator from the array `c1` at the end, then it is invalid.
-                return false;
-        }
-        //Iterate over all the characters and check if a character is neither a digit nor an operator from `c`.
-        // If such a character is found, the formula is invalid.
-        for (int i = 0; i < s.length(); i++) {
-            sum = 0;
-            for (int j = 0; j < c.length; j++) {
-                if (s.charAt(i) == c[j])
-                    sum = 1;
-            }
-            if (!Character.isDigit(s.charAt(i)) && sum == 0 && !Character.isLetter(s.charAt(i))&&!Character.isLowerCase(s.charAt(i)))
-                return false;
+    // Checks if the given string is a valid formula.
+    public static boolean isForm(String text) {
 
-        }
-        //If there is a mathematical operator and the character before or after it is invalid, then the formula is invalid.
-        for (int i = 1; i < s.length() - 1; i++) {
-            for (int j = 0; j < c3.length; j++) {
-                if (s.charAt(i) == c3[j] && ((!Character.isDigit(s.charAt(i - 1)) && s.charAt(i - 1) != ')') || (!Character.isDigit(s.charAt(i + 1)) && !Character.isLetter(s.charAt(i)) && s.charAt(i + 1) != '(')))
-                    return false;
-            }
-        }
-
-        //If there are parentheses with nothing between them, or if the number of opening parentheses does not match the number of closing parentheses,
-        // then the formula is invalid.
-        sum = 0;
-        for (int i = 0; i < s.length(); i++) {
-            if (s.charAt(i) == '(') {
-                sum++;
-                if (s.charAt(i + 1) == ')')
-                    return false;
-            }
-            if (s.charAt(i) == ')')
-                sum--;
-        }
-        if (sum != 0)
+        if (text == null || text.isEmpty() || text.charAt(0) != '=') {
             return false;
+        }
 
-        // Iterate through each character in the string, check if the character is a letter,
-        // if the letter is the second to last or third to last character Get the next character,
-        // Return false if it's not a digit.
-        for (int i = 0; i < s.length(); i++) {
-            char x = s.charAt(i);
-            if (Character.isLetter(x)) {
-                if (i + 1 == s.length() - 1) {
-                    char y = s.charAt(i + 1);
-                    if (!Character.isDigit(y)) {
-                        return false;
+        if (text.charAt(0) == '=') {
+            text = text.substring(1);
+        }
+        text = text.replaceAll("\\s+", "");
+        text = text.toUpperCase();
+
+        if (SCell.isNumber(text)) {
+            return true;
+        }
+
+        char[] Op1 = {'+', '-', '*', '/', '(', ')', '.'};
+
+        char[] op2 = {'+', '-', '*', '/'};
+
+        boolean lastWasOperator = true;
+        int parenthesesCount = 0;
+
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+
+            // אם התו הוא ספרה, אין בעיה
+            if (Character.isDigit(c)) {
+                lastWasOperator = false;
+            }
+
+            else if (Character.isLetter(c)) {
+                if (validRef(text.substring(i))) {
+                    lastWasOperator = false;
+                    while (i +1 < text.length() && !containsChar(op2, text.charAt(i+1))){
+                        i++;
                     }
+                } else {
+                    return false;
                 }
-                if (i + 2 == s.length() - 1) {
-                    char y = s.charAt(i + 1);
-                    char z = s.charAt(i + 2);
-                    if (!Character.isDigit(y) || (!Character.isDigit(z) && z != ')')) {
-                        return false;
-                    }
+            }
+            // אם זה אופרטור, יש לוודא שאין 2 אופרטורים ברצף
+            else if (containsChar(op2, c)) {
+                if (lastWasOperator) {
+                    return false;
                 }
-                // If the letter is followed by more characters
-                if (i + 2 < s.length() - 1) {
-                    char y = s.charAt(i + 1);
-                    char z = s.charAt(i + 2);
-                    char a = s.charAt(i + 3);
-                    // If the character after the letter is not a digit, return false.
-                    if (!Character.isDigit(y)) {
-                        return false;
-                    }
-                    // if z isn't digit.
-                    if (!Character.isDigit(z)) {
-                        int count = 0;
-                        // Iterate through the array 'c2' to check if 'z' is a valid operator
-                        for (int j = 0; j < c2.length - 1; j++) {
-                            if (c2[j] == z) {
-                                count++;
-                            }
-                        }
-                        // If 'z' is not a valid operator (count is 0), the string is invalid
-                        if (count == 0) {
-                            return false;
-                        }
-                    }
-                    // max index can be 99
-                    if (Character.isDigit(z) && Character.isDigit(a)) {
-                        return false;
-                    }
+                lastWasOperator = true;
+            }
+            // אם זה סוגריים, לבדוק שהם מאוזנים
+            else if (c == '(') {
+                parenthesesCount++;
+                lastWasOperator = true; // חייב להיות מספר או אות אחרי סוגריים פתוחים
+            }
+            else if (c == ')') {
+                parenthesesCount--;
+                if (parenthesesCount < 0) {
+                    return false; // יותר סוגריים סגורים מפתוחים
                 }
+                lastWasOperator = false; // חייב להיות אופרטור אחרי סוגריים סגורים
+            }
+            // תו שאינו חוקי
+            else {
+                return false;
             }
         }
 
-        return true;
+        // לוודא שאין יותר סוגריים פתוחים מאשר סגורים
+        if (parenthesesCount != 0) {
+            return false;
+        }
+
+        // לוודא שהנוסחה לא מסתיימת באופרטור (למשל "=5+")
+        return !lastWasOperator;
     }
 
-     //return the last char is the string
-    private static char lastChar(String s) {
-        return s.charAt(s.length() - 1);
+
+    private static boolean containsChar(char[] array, char target) {
+        for (int i = 0; i < array.length; i++) { // Loop through array with index i
+            if (array[i] == target) {
+                return true; // Return true if character is found
+            }
+        }
+        return false; // Return false if character is not found
     }
+
 
     //Validates if the given string is a reference to another cell.
     public static boolean CellReference(String s) {
@@ -367,12 +227,12 @@ public class SCell implements Cell {
     }
 
     //arses the formula to extract cell references that the current cell depends on.
-   public static ArrayList<String> Dependencies(String form) {
+    public static ArrayList<String> Dependencies(String form) {
         ArrayList<String> depen = new ArrayList<>();
-       if (form == null || form == "")
-           return depen;
-       if (form.charAt(0)=='=')
-        form = form.substring(1); // Remove the '=' at the beginning of the formula.
+        if (form == null || form == "")
+            return depen;
+        if (form.charAt(0) == '=')
+            form = form.substring(1); // Remove the '=' at the beginning of the formula.
         // // Split the formula into array based on mathematical operators and parentheses
         String[] parts = form.split("[+\\-*/()]");
         // Iterate through each part of the formula, check if the part is a valid cell reference,
@@ -414,4 +274,46 @@ public class SCell implements Cell {
         return -1;
     }
 
+    private static boolean validRef(String s) {
+        char[] c2 = {'+', '-', '*', '/', ')', '.'};
+        char x = s.charAt(0);
+        if (s.length() == 1) {
+            return false;
+        }
+        if (s.length() == 2) {
+            char y = s.charAt(1);
+            if (!Character.isDigit(y)) {
+                return false;
+            }
+        }
+        if (s.length() == 3) {
+            char y = s.charAt(1);
+            char z = s.charAt(2);
+            if (!Character.isDigit(y) || (!Character.isDigit(z) && z != ')')) {
+                return false;
+            }
+        }
+        // If the letter is followed by more characters
+        if (s.length() > 3) {
+            char y = s.charAt(1);
+            char z = s.charAt(2);
+            char a = s.charAt(3);
+            // If the character after the letter is not a digit, return false.
+            if (!Character.isDigit(y)) {
+                return false;
+            }
+            // if z isn't digit.
+            if (!Character.isDigit(z)) {
+                int count = 0;
+                if (!containsChar(c2, z)) {
+                    return false;
+                }
+                // max index can be 99
+                if (Character.isDigit(z) && Character.isDigit(a)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 }
