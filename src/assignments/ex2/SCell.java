@@ -8,7 +8,6 @@ public class SCell implements Cell {
     private int type; //An int representing the type of the cell
     // (for examples 1 for text, 2 for numbers, 3 for formulas).
     private int order; //An int representing the order of computation for this cell.
-    private ArrayList<String> depens;
 
 
     //Initializes the cell with the given string.
@@ -17,7 +16,6 @@ public class SCell implements Cell {
         setData(s);
         type = whatType(s);
         order = computeOrder(s);
-        depens = new ArrayList<>();
     }
 
     //Returns the computation order of the cell.
@@ -96,9 +94,9 @@ public class SCell implements Cell {
             return false;
         }
 
-        if (text.charAt(0) == '=') {
-            text = text.substring(1);
-        }
+
+        text = text.substring(1);
+
         text = text.replaceAll("\\s+", "");
         text = text.toUpperCase();
 
@@ -106,17 +104,21 @@ public class SCell implements Cell {
             return true;
         }
 
-        char[] Op1 = {'+', '-', '*', '/', '(', ')', '.'};
+        char[] op1 = {'+', '-', '*', '/', '(', '.'};
 
         char[] op2 = {'+', '-', '*', '/'};
 
+        char[] op3 = {'+', '-', '*', '/',')'};
+
+        if ( containsChar(op1,text.charAt(text.length()-1))){
+            return false;
+        }
         boolean lastWasOperator = true;
         int parenthesesCount = 0;
 
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
 
-            // אם התו הוא ספרה, אין בעיה
             if (Character.isDigit(c)) {
                 lastWasOperator = false;
             }
@@ -124,45 +126,46 @@ public class SCell implements Cell {
             else if (Character.isLetter(c)) {
                 if (validRef(text.substring(i))) {
                     lastWasOperator = false;
-                    while (i +1 < text.length() && !containsChar(op2, text.charAt(i+1))){
+                    while (i+1 < text.length() && !containsChar(op3, text.charAt(i+1))){
                         i++;
                     }
                 } else {
                     return false;
                 }
             }
-            // אם זה אופרטור, יש לוודא שאין 2 אופרטורים ברצף
+
             else if (containsChar(op2, c)) {
                 if (lastWasOperator) {
                     return false;
                 }
                 lastWasOperator = true;
             }
-            // אם זה סוגריים, לבדוק שהם מאוזנים
+
             else if (c == '(') {
                 parenthesesCount++;
-                lastWasOperator = true; // חייב להיות מספר או אות אחרי סוגריים פתוחים
+                lastWasOperator = true;
             }
             else if (c == ')') {
                 parenthesesCount--;
                 if (parenthesesCount < 0) {
-                    return false; // יותר סוגריים סגורים מפתוחים
+                    return false;
                 }
-                lastWasOperator = false; // חייב להיות אופרטור אחרי סוגריים סגורים
-            }
-            // תו שאינו חוקי
-            else {
+                lastWasOperator = false;
+            } else if (c == '.') {
+               if(!Character.isDigit(text.charAt(i+1)) || !Character.isDigit(text.charAt(i-1))){
+                   return false;
+                }
+
+            } else {
                 return false;
             }
         }
 
-        // לוודא שאין יותר סוגריים פתוחים מאשר סגורים
         if (parenthesesCount != 0) {
             return false;
         }
 
-        // לוודא שהנוסחה לא מסתיימת באופרטור (למשל "=5+")
-        return !lastWasOperator;
+        return true;
     }
 
 
@@ -214,16 +217,16 @@ public class SCell implements Cell {
 
     //Determines the type of the content
     public int whatType(String s) {
-        if (isText(s)) {
-            return 1;
+        if (isForm(s)) {
+            return Ex2Utils.FORM;
         }
         if (isNumber(s)) {
-            return 2;
+            return Ex2Utils.NUMBER;
         }
-        if (isForm(s)) {
-            return 3;
+        if (isText(s)) {
+            return Ex2Utils.TEXT;
         }
-        return -2;
+        return Ex2Utils.ERR_FORM_FORMAT;
     }
 
     //arses the formula to extract cell references that the current cell depends on.
@@ -275,7 +278,7 @@ public class SCell implements Cell {
     }
 
     private static boolean validRef(String s) {
-        char[] c2 = {'+', '-', '*', '/', ')', '.'};
+        char[] c2 = {'+', '-', '*', '/', ')'};
         char x = s.charAt(0);
         if (s.length() == 1) {
             return false;
