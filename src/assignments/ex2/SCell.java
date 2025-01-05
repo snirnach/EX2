@@ -14,8 +14,7 @@ public class SCell implements Cell {
     //Determines the type and order of the cell during initialization
     public SCell(String s) {
         setData(s);
-        type = whatType(s);
-        order = computeOrder(s);
+
     }
 
     //Returns the computation order of the cell.
@@ -35,6 +34,8 @@ public class SCell implements Cell {
     @Override
     public void setData(String s) {
         line = s;
+        type = whatType(s);
+        order = computeOrder(s);
     }
 
     //Returns the content of the cell.
@@ -59,8 +60,8 @@ public class SCell implements Cell {
     @Override
     public void setOrder(int t) {
         order = t;
-
     }
+
 
     // Checks if the given string is a valid number.
     public static boolean isNumber(String text) {

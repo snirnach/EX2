@@ -25,7 +25,8 @@ public class Ex2Sheet implements Sheet {
         String ans = Ex2Utils.EMPTY_CELL;
         Cell c = get(x, y);
         if (c != null) {
-            ans = c.getData();
+            ans = eval(x,y);
+
         }
         return ans;
     }
@@ -67,7 +68,7 @@ public class Ex2Sheet implements Sheet {
         int[][] dd = depth();
         for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
-                set(i, j, eval(i, j));
+               eval(i,j);
             }
         }
     }
@@ -85,6 +86,10 @@ public class Ex2Sheet implements Sheet {
         int[][] ans = new int[width()][height()];
         for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
+                if (hasCycle(table[i][j].getData(),i,j)){
+                    ans[i][j] = -1;
+                    continue;
+                }
                 int depth = table[i][j].getOrder();
                 ans[i][j] = depth;
             }
@@ -149,40 +154,29 @@ public class Ex2Sheet implements Sheet {
         if (SCell.isForm(data)) {
             if (hasCycle(data, x, y)) {
                 table[x][y].setType(-1);
-                table[x][y].setData(Ex2Utils.ERR_CYCLE);
-                return table[x][y].getData();
+                return Ex2Utils.ERR_CYCLE;
             }
 
-            double result = computeForm(data, x, y);
+            double result = computeForm(data);
             if (!Double.isInfinite(result)) {
-                table[x][y].setType(3);
                 return String.valueOf(result);
             }
         }
         if (SCell.isNumber(data)) {
-            table[x][y].setType(2);
             Double data1 = Double.parseDouble(data);
             return String.valueOf(data1);
         }
         if (data.charAt(0)=='(' && SCell.isNumber(data.substring(1, data.length()-1))){
             Double data1 = Double.parseDouble(data.substring(1, data.length()-1));
-            table[x][y].setType(2);
             return String.valueOf(data1);
         }
-
-
         if (SCell.isText(data)) {
-            table[x][y].setType(1);
             return data;
         }
 
-
-        table[x][y].setData(Ex2Utils.ERR_FORM);
-        return table[x][y].getData();
-        }
-
-
-
+        table[x][y].setType(-2);
+        return Ex2Utils.ERR_FORM;
+    }
 
     public void clearCells() {
         for (int i = 0; i < width(); i++) {
@@ -192,7 +186,7 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
-    public Double computeForm(String form, int x, int y) {
+    public Double computeForm(String form) {
         if (form == null || form.isEmpty()) {
 
             return Double.POSITIVE_INFINITY;
@@ -219,7 +213,7 @@ public class Ex2Sheet implements Sheet {
             }
             if (part.charAt(0) == '(') {
 
-                numbers.add(computeForm(part.substring(1, part.length() - 1), x, y));
+                numbers.add(computeForm(part.substring(1, part.length() - 1)));
             }
             else if (SCell.CellReference(part)) {
                 int refX = CellEntry.letterToNumber(part.charAt(0));
@@ -284,23 +278,6 @@ public class Ex2Sheet implements Sheet {
     private boolean isOperator(char c) {
         return c == '+' || c == '-' || c == '*' || c == '/';
     }
-    public static boolean isForm(String text) {
-        if (text == null || text.isEmpty() || text.charAt(0) != '=') {
-            return false;
-        }
-
-        String formula = text.substring(1);
-        formula = formula.replaceAll("\\s+", "");
-
-        // אם זו רק ספרה אחת
-        if (SCell.isNumber(formula)) {
-            return true;
-        }
-
-        // אם זה ביטוי מתמטי חוקי (מספרים, אותיות, אופרטורים)
-        return formula.matches("[A-Za-z0-9+\\-*/().]+");
-    }
-
 
     private boolean hasCycle(String s, int x, int y) {
         if (s == null || s.isEmpty()) {
@@ -321,7 +298,7 @@ public class Ex2Sheet implements Sheet {
             return false; // A number or text cannot create a cycle
         }
 
-        if (isForm(s)) {
+        if (SCell.isForm(s)) {
             if (!SCell.CellReference(s)) {
                 return false; // If not a valid reference, it's not a cycle
             }
