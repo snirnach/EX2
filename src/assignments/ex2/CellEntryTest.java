@@ -28,13 +28,11 @@ class CellEntryTest {
         assertEquals(3, cell3.getX());
         assertEquals(99, cell3.getY());
 
-        assertThrows(RuntimeException.class, () -> new CellEntry('1', 5));
-        assertThrows(RuntimeException.class, () -> new CellEntry('A', -1));
-        assertThrows(RuntimeException.class, () -> new CellEntry('A', 100));
     }
 
     @Test
     void getX() {
+
     }
 
     @Test

@@ -10,9 +10,6 @@ private final int y;//The number representing the row of the cell. Must be betwe
 
     //Initializes a CellEntry object with the given column (a) and row (b).
 public CellEntry (char a, int b) {
-    if (!Character.isLetter(a) || b<0 || b> 99){
-        throw new RuntimeException();
-    }
     x = a;
     y = b;
 }
@@ -30,12 +27,20 @@ public CellEntry (char a, int b) {
     //Converts the letter (A-Z or a-z) to a 0-based index using the letterToNumber method.
     @Override
     public int getX() {
-    return letterToNumber(x);
+    if (isValid()) {
+        return letterToNumber(x);
+    }
+    return Ex2Utils.ERR;
 }
 
     //Retrieves the row value (y).
     @Override
-    public int getY() {return y;}
+    public int getY() {
+        if (isValid()) {
+            return y;
+        }
+        return Ex2Utils.ERR;
+    }
 
     //Converts a letter to its 0-based index
     public static int letterToNumber(char letter) {

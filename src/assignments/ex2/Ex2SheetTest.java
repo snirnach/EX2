@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class Ex2SheetTest {
+    private Ex2Sheet sheet;
 
     @Test
     void value() {

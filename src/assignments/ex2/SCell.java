@@ -1,5 +1,4 @@
 package assignments.ex2;
-import java.util.ArrayList;
 
 //SCell represents a single cell in a spreadsheet. Each cell can store text,
 // numbers, or formulas and supports computation of dependencies and order of evaluation.
@@ -24,6 +23,7 @@ public class SCell implements Cell {
     }
 
 
+
     //Returns the cell's content as a string.
     @Override
     public String toString() {
@@ -34,8 +34,7 @@ public class SCell implements Cell {
     @Override
     public void setData(String s) {
         line = s;
-        type = whatType(s);
-        order = computeOrder(s);
+        //type = whatType(s);
     }
 
     //Returns the content of the cell.
@@ -91,83 +90,104 @@ public class SCell implements Cell {
     // Checks if the given string is a valid formula.
     public static boolean isForm(String text) {
 
+        // Check if the text is null, empty, or does not start with '=' (invalid formula)
         if (text == null || text.isEmpty() || text.charAt(0) != '=') {
             return false;
         }
 
-
+        // Remove the '=' at the beginning since it is a formula
         text = text.substring(1);
 
+        // Remove all whitespace and convert to uppercase for uniformity
         text = text.replaceAll("\\s+", "");
         text = text.toUpperCase();
 
+        // If the entire formula is just a number, return true
         if (SCell.isNumber(text)) {
             return true;
         }
 
-        char[] op1 = {'+', '-', '*', '/', '(', '.'};
+        // Arrays of valid operators
+        char[] op1 = {'+', '-', '*', '/', '(', '.'}; // General operators including parentheses and decimal point
+        char[] op2 = {'+', '-', '*', '/'};           // Basic arithmetic operators
+        char[] op3 = {'+', '-', '*', '/', ')'};      // Operators that can follow a reference
 
-        char[] op2 = {'+', '-', '*', '/'};
-
-        char[] op3 = {'+', '-', '*', '/',')'};
-
-        if ( containsChar(op1,text.charAt(text.length()-1))){
+        // If the last character is an operator, the formula is invalid
+        if (containsChar(op1, text.charAt(text.length() - 1))) {
             return false;
         }
-        boolean lastWasOperator = true;
-        int parenthesesCount = 0;
 
+        boolean lastWasOperator = true; // Track whether the last character was an operator
+        int parenthesesCount = 0;       // Track opened and closed parentheses count
+
+        // Iterate through each character in the formula
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
 
+            // If the character is a digit, update the operator tracker
             if (Character.isDigit(c)) {
                 lastWasOperator = false;
             }
 
+            // If the character is a letter, check if it's a valid cell reference
             else if (Character.isLetter(c)) {
-                if (validRef(text.substring(i))) {
+                if (validRef(text.substring(i))) { // Validate reference
                     lastWasOperator = false;
-                    while (i+1 < text.length() && !containsChar(op3, text.charAt(i+1))){
+
+                    // Skip over the reference to avoid checking characters inside it
+                    while (i + 1 < text.length() && !containsChar(op3, text.charAt(i + 1))) {
                         i++;
                     }
                 } else {
-                    return false;
+                    return false; // Invalid cell reference
                 }
             }
 
+            // If the character is an arithmetic operator, check validity
             else if (containsChar(op2, c)) {
                 if (lastWasOperator) {
-                    return false;
+                    return false; // Cannot have two consecutive operators
                 }
                 lastWasOperator = true;
             }
 
+            // If the character is an opening parenthesis, increase count
             else if (c == '(') {
                 parenthesesCount++;
                 lastWasOperator = true;
             }
+
+            // If the character is a closing parenthesis, decrease count
             else if (c == ')') {
                 parenthesesCount--;
                 if (parenthesesCount < 0) {
-                    return false;
+                    return false; // More closing parentheses than opening
                 }
                 lastWasOperator = false;
-            } else if (c == '.') {
-               if(!Character.isDigit(text.charAt(i+1)) || !Character.isDigit(text.charAt(i-1))){
-                   return false;
-                }
+            }
 
-            } else {
+            // If the character is a decimal point, check that it is within a number
+            else if (c == '.') {
+                if (!Character.isDigit(text.charAt(i + 1)) || !Character.isDigit(text.charAt(i - 1))) {
+                    return false; // A decimal must be between two digits
+                }
+            }
+
+            // If the character is invalid, return false
+            else {
                 return false;
             }
         }
 
+        // If there are unmatched parentheses, the formula is invalid
         if (parenthesesCount != 0) {
             return false;
         }
 
+        // If all checks passed, return true
         return true;
     }
+
 
 
     private static boolean containsChar(char[] array, char target) {
@@ -182,6 +202,9 @@ public class SCell implements Cell {
 
     //Validates if the given string is a reference to another cell.
     public static boolean CellReference(String s) {
+        if (s == null){
+            return false;
+        }
         // If no letters are found, it cannot be a valid cell reference.
         if (!s.matches(".*[a-zA-Z].*")) {
             return false;
@@ -191,6 +214,9 @@ public class SCell implements Cell {
         // Return true if it's a digit.
         for (int i = 0; i < s.length(); i++) {
             char x = s.charAt(i);
+            if (i==s.length()-1){
+                return false;
+            }
             if (Character.isLetter(x)) {
                 if (i + 1 == s.length() - 1 || i + 2 == s.length() - 1) {
                     char y = s.charAt(i + 1);
@@ -219,77 +245,35 @@ public class SCell implements Cell {
     //Determines the type of the content
     public int whatType(String s) {
         if (isForm(s)) {
-            return Ex2Utils.FORM;
+            return 3;
         }
         if (isNumber(s)) {
-            return Ex2Utils.NUMBER;
+            return 2;
         }
         if (isText(s)) {
-            return Ex2Utils.TEXT;
+            return 1;
         }
-        return Ex2Utils.ERR_FORM_FORMAT;
+        return -2;
     }
 
-    //arses the formula to extract cell references that the current cell depends on.
-    public static ArrayList<String> Dependencies(String form) {
-        ArrayList<String> depen = new ArrayList<>();
-        if (form == null || form == "")
-            return depen;
-        if (form.charAt(0) == '=')
-            form = form.substring(1); // Remove the '=' at the beginning of the formula.
-        // // Split the formula into array based on mathematical operators and parentheses
-        String[] parts = form.split("[+\\-*/()]");
-        // Iterate through each part of the formula, check if the part is a valid cell reference,
-        // Add the valid cell reference to the dependencies list
-        for (int i = 0; i < parts.length; i++) {
-            if (CellReference(parts[i])) {
-                depen.add(parts[i]);
-            }
-        }
-        return depen;
-    }
-
-    //Computes the natural order of this cell based on its dependencies.
-    private int computeOrder(String s) {
-        // If the cell content is null or empty, the computation order is 0
-        if (line == null || line.isEmpty()) {
-            return 0;
-        }
-        // If the cell content is a number or plain text, it doesn't depend on other cells.
-        if (isNumber(line) || isText(line)) {
-            return 0;
-        }
-        if (isForm(line)) {
-            // Get Arraylist of all dependencies (cell references) in the formula.
-            ArrayList<String> depen1 = Dependencies(line);
-            int maxorder = 0; // Initialize the maximum order as 0
-
-            // Iterate through the list of dependencies,Create an SCell object for each dependent cell
-            // Get the computation order of the dependent cell, and Update the maximum order based on the current dependent cell.
-            for (int i = 0; i < depen1.size(); i++) {
-                SCell dependentCell = new SCell(depen1.get(i));
-                int order = dependentCell.getOrder();
-                maxorder = Math.max(maxorder, order);
-            }
-            return maxorder + 1; // The order of this cell is 1 plus the maximum order of its dependencies.
-
-        }
-        // If the content doesn't match any valid type, return -1 (indicates an error)
-        return -1;
-    }
 
     private static boolean validRef(String s) {
-        char[] c2 = {'+', '-', '*', '/', ')'};
-        char x = s.charAt(0);
+        char[] c2 = {'+', '-', '*', '/', ')'}; // Array of invalid characters for cell references
+
+        // If the string length is only 1, it's not a valid reference
         if (s.length() == 1) {
             return false;
         }
+
+        // If the string length is 2, the second character must be a digit
         if (s.length() == 2) {
             char y = s.charAt(1);
             if (!Character.isDigit(y)) {
                 return false;
             }
         }
+
+        // If the string length is 3, the second must be a digit, and the third must be a digit or ')'
         if (s.length() == 3) {
             char y = s.charAt(1);
             char z = s.charAt(2);
@@ -297,27 +281,36 @@ public class SCell implements Cell {
                 return false;
             }
         }
-        // If the letter is followed by more characters
+
+        // If the reference is longer than 3 characters, check additional rules
         if (s.length() > 3) {
-            char y = s.charAt(1);
-            char z = s.charAt(2);
-            char a = s.charAt(3);
-            // If the character after the letter is not a digit, return false.
+            char y = s.charAt(1); // Second character
+            char z = s.charAt(2); // Third character
+            char a = s.charAt(3); // Fourth character
+
+            // If the second character is not a digit, return false
             if (!Character.isDigit(y)) {
                 return false;
             }
-            // if z isn't digit.
+
+            // If the third character is not a digit, check if it is an allowed operator or bracket
             if (!Character.isDigit(z)) {
                 int count = 0;
+
+                // Check if `z` is in the array `c2`, which contains invalid reference characters
                 if (!containsChar(c2, z)) {
                     return false;
                 }
-                // max index can be 99
+
+                // If both third and fourth characters are digits, it exceeds the valid index limit (max 99)
                 if (Character.isDigit(z) && Character.isDigit(a)) {
                     return false;
                 }
             }
         }
+
+        // If all checks passed, it's a valid reference
         return true;
     }
+
 }
