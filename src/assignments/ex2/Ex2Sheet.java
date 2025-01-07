@@ -84,21 +84,13 @@ public class Ex2Sheet implements Sheet {
 
     @Override
     public void eval() {
-        // Evaluates all cells in the sheet
-        int[][] dd = depth(); // Compute dependency depth of all cells
-
         for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
-                // If a circular dependency is detected, mark it as an error
-                if (dd[i][j] == -1) {
-                    table[i][j].setData(Ex2Utils.ERR_CYCLE);
-                    table[i][j].setType(-1); // Set type to indicate an error
-                } else {
-                    eval(i, j); // Otherwise, evaluate the cell
+                    eval(i, j); // evaluate the cell
                 }
             }
         }
-    }
+
 
     @Override
     public boolean isIn(int xx, int yy) {
@@ -194,6 +186,7 @@ public class Ex2Sheet implements Sheet {
 
         // Get the actual content of the cell.
         String data = c.getData();
+        data = data.replaceAll("\\s+", "").toUpperCase();
 
         // Check for cyclic dependencies; if a cycle is detected, mark the cell and return an error.
         if (computeOrder(data, x, y, new HashSet<>()) == -1) {
@@ -376,7 +369,7 @@ public class Ex2Sheet implements Sheet {
 
 
 //function return the order of Cell
-    private int computeOrder(String s, int x, int y, Set<String> visited) {
+int computeOrder(String s, int x, int y, Set<String> visited) {
         // If the cell is empty or contains a number/text, there is no dependency to calculate.
         if (s == null || s.isEmpty() || isNumber(s) || isText(s)) {
             return 0;

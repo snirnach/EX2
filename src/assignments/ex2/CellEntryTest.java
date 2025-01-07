@@ -28,14 +28,40 @@ class CellEntryTest {
         assertEquals(3, cell3.getX());
         assertEquals(99, cell3.getY());
 
+        CellEntry entry = new CellEntry('A', 5);
+        assertTrue(entry.isValid());
+
+        CellEntry invalidEntry1 = new CellEntry('Z', 100);
+        assertFalse(invalidEntry1.isValid());
+
+        CellEntry invalidEntry2 = new CellEntry('1', 5);
+        assertFalse(invalidEntry2.isValid());
     }
 
     @Test
-    void getX() {
+    public void testGetX() {
+        CellEntry entry = new CellEntry('B', 10);
+        assertEquals(1, entry.getX()); // 'B' should map to 1 (0-based index)
 
+        CellEntry invalidEntry = new CellEntry('1', 10);
+        assertEquals(Ex2Utils.ERR, invalidEntry.getX());
     }
 
     @Test
-    void getY() {
+    public void testGetY() {
+        CellEntry entry = new CellEntry('C', 25);
+        assertEquals(25, entry.getY());
+
+        CellEntry invalidEntry = new CellEntry('C', 150);
+        assertEquals(Ex2Utils.ERR, invalidEntry.getY());
+    }
+
+    @Test
+    public void testLetterToNumber() {
+        assertEquals(0, CellEntry.letterToNumber('A'));
+        assertEquals(1, CellEntry.letterToNumber('B'));
+        assertEquals(25, CellEntry.letterToNumber('Z'));
+        assertEquals(0, CellEntry.letterToNumber('a'));
+        assertEquals(25, CellEntry.letterToNumber('z'));
     }
 }

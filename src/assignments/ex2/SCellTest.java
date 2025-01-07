@@ -52,7 +52,7 @@ class SCellTest {
 
     @Test
     void isText() {
-        assertTrue(SCell.isText("Hello"));
+        assertTrue(SCell.isText("Snir"));
         assertTrue(SCell.isText("A1+B2"));
         assertTrue(SCell.isText("1.2.3"));
         assertTrue(SCell.isText("jdfghdfj"));
