@@ -72,6 +72,7 @@ class SCellTest {
         assertTrue(SCell.isForm("=A2*B3/C4"));
         assertTrue(SCell.isForm("=(A1+B1)*(C1+D1)"));
         assertTrue(SCell.isForm("=((A1+5)*2)/C3"));
+        assertTrue(SCell.isForm("=(-4)"));
 
         assertFalse(SCell.isForm(null));
         assertFalse(SCell.isForm(""));

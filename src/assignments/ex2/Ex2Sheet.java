@@ -87,6 +87,7 @@ public class Ex2Sheet implements Sheet {
         for (int i = 0; i < width(); i++) {
             for (int j = 0; j < height(); j++) {
                     eval(i, j); // evaluate the cell
+                table[i][j].setOrder(computeOrder(table[i][j].getData(),i,j,new HashSet<>()));
                 }
             }
         }
@@ -226,7 +227,7 @@ public class Ex2Sheet implements Sheet {
         }
 
         // If the cell contains text (not a formula), return it as is.
-        if (isText(data) && data.charAt(0) != '=') {
+        if (isText(data)) {
             table[x][y].setType(1); // Type 1 indicates a text value.
             return data;
         }
@@ -274,19 +275,24 @@ public class Ex2Sheet implements Sheet {
 
         // Split the formula based on mathematical operators while keeping parentheses intact.
         String[] parts = form.split("((?=[-+*/])|(?<=[-+*/]))(?![^()]*\\))");
+        // String[] parts = form.split("(?<=[-+*/()])|(?=[-+*/()])");
 
         // Iterate over each extracted part.
         for (int i = 0; i < parts.length; i++) {
             String part = parts[i];
 
+            if (part.equals("-") && (i == 0 || operators.contains(parts[i - 1].charAt(0)) || parts[i - 1].equals("("))) {
+                parts[i + 1] = "-" + parts[i + 1];
+                continue;
+            }
             // If the part is a number, add it to the numbers list.
             if (SCell.isNumber(part)) {
                 numbers.add(Double.parseDouble(part));
             }
 
             // If the part is an expression within parentheses, evaluate it recursively.
-            if (part.charAt(0) == '(') {
-                numbers.add(computeForm(part.substring(1, part.length() - 1)));
+          if (part.charAt(0) == '(') {
+                    numbers.add(computeForm(part.substring(1, part.length() - 1)));
             }
 
             // If the part is a cell reference (e.g., A1, B2), retrieve its value.
@@ -363,13 +369,14 @@ public class Ex2Sheet implements Sheet {
         }
     }
 
+
     private boolean isOperator(char c) {
         return c == '+' || c == '-' || c == '*' || c == '/';
     }
 
 
 //function return the order of Cell
-int computeOrder(String s, int x, int y, Set<String> visited) {
+public int computeOrder(String s, int x, int y, Set<String> visited) {
         // If the cell is empty or contains a number/text, there is no dependency to calculate.
         if (s == null || s.isEmpty() || isNumber(s) || isText(s)) {
             return 0;
@@ -398,6 +405,7 @@ int computeOrder(String s, int x, int y, Set<String> visited) {
 
         // Iterate through all cells that the formula depends on.
         for (String dep : dependencies) {
+            dep.replaceAll("\\s+", "").toUpperCase();
             int depX = CellEntry.letterToNumber(dep.charAt(0)); // Convert column letter to number.
             int depY = Integer.parseInt(dep.substring(1)); // Extract row number.
 

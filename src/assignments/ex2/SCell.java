@@ -13,7 +13,8 @@ public class SCell implements Cell {
     //Determines the type and order of the cell during initialization
     public SCell(String s) {
         setData(s);
-
+        type = whatType(s);
+        order= 0;
     }
 
     //Returns the computation order of the cell.
@@ -34,7 +35,6 @@ public class SCell implements Cell {
     @Override
     public void setData(String s) {
         line = s;
-        //type = whatType(s);
     }
 
     //Returns the content of the cell.
@@ -78,115 +78,96 @@ public class SCell implements Cell {
     //Checks if the given string is a not number and not formula.
     public static boolean isText(String text) {
         boolean ans = true;
+        if (text== null || text.isEmpty()){
+            return false;
+        }
         if (isNumber(text))
             ans = false;
-        if (isForm(text))
+        if ( text.charAt(0) == '=')
             ans = false;
 
         return ans;
     }
 
 
-    // Checks if the given string is a valid formula.
-    public static boolean isForm(String text) {
 
-        // Check if the text is null, empty, or does not start with '=' (invalid formula)
+    public static boolean isForm(String text) {
         if (text == null || text.isEmpty() || text.charAt(0) != '=') {
             return false;
         }
 
-        // Remove the '=' at the beginning since it is a formula
         text = text.substring(1);
+        text = text.replaceAll("\\s+", "").toUpperCase();
 
-        // Remove all whitespace and convert to uppercase for uniformity
-        text = text.replaceAll("\\s+", "");
-        text = text.toUpperCase();
-
-        // If the entire formula is just a number, return true
         if (SCell.isNumber(text)) {
             return true;
         }
 
-        // Arrays of valid operators
-        char[] op1 = {'+', '-', '*', '/', '(', '.'}; // General operators including parentheses and decimal point
-        char[] op2 = {'+', '-', '*', '/'};           // Basic arithmetic operators
-        char[] op3 = {'+', '-', '*', '/', ')'};      // Operators that can follow a reference
+        char[] op1 = {'+', '-', '*', '/', '(', '.'};
+        char[] op2 = {'+', '-', '*', '/'};
+        char[] op3 = {'+', '-', '*', '/', ')'};
 
-        // If the last character is an operator, the formula is invalid
         if (containsChar(op1, text.charAt(text.length() - 1))) {
             return false;
         }
 
-        boolean lastWasOperator = true; // Track whether the last character was an operator
-        int parenthesesCount = 0;       // Track opened and closed parentheses count
+        boolean lastWasOperator = true;
+        int parenthesesCount = 0;
 
-        // Iterate through each character in the formula
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
 
-            // If the character is a digit, update the operator tracker
-            if (Character.isDigit(c)) {
+            // Allow '-' at the beginning as part of a negative number
+            if (i == 0 && c == '-') {
                 lastWasOperator = false;
+                continue;
             }
 
-            // If the character is a letter, check if it's a valid cell reference
-            else if (Character.isLetter(c)) {
-                if (validRef(text.substring(i))) { // Validate reference
+            if (Character.isDigit(c)) {
+                lastWasOperator = false;
+            } else if (Character.isLetter(c)) {
+                if (validRef(text.substring(i))) {
                     lastWasOperator = false;
-
-                    // Skip over the reference to avoid checking characters inside it
                     while (i + 1 < text.length() && !containsChar(op3, text.charAt(i + 1))) {
                         i++;
                     }
                 } else {
-                    return false; // Invalid cell reference
+                    return false;
                 }
-            }
-
-            // If the character is an arithmetic operator, check validity
-            else if (containsChar(op2, c)) {
+            } else if (containsChar(op2, c)) {
                 if (lastWasOperator) {
-                    return false; // Cannot have two consecutive operators
+                    return false;
                 }
                 lastWasOperator = true;
-            }
-
-            // If the character is an opening parenthesis, increase count
-            else if (c == '(') {
+            } else if (c == '(') {
                 parenthesesCount++;
+                if (text.charAt(i+1)== '-'){
+                    i++;
+                    continue;
+                }
                 lastWasOperator = true;
-            }
-
-            // If the character is a closing parenthesis, decrease count
-            else if (c == ')') {
+            } else if (c == ')') {
                 parenthesesCount--;
                 if (parenthesesCount < 0) {
-                    return false; // More closing parentheses than opening
+                    return false;
                 }
                 lastWasOperator = false;
-            }
-
-            // If the character is a decimal point, check that it is within a number
-            else if (c == '.') {
+            } else if (c == '.') {
                 if (!Character.isDigit(text.charAt(i + 1)) || !Character.isDigit(text.charAt(i - 1))) {
-                    return false; // A decimal must be between two digits
+                    return false;
                 }
-            }
-
-            // If the character is invalid, return false
-            else {
+            } else {
                 return false;
             }
         }
 
-        // If there are unmatched parentheses, the formula is invalid
         if (parenthesesCount != 0) {
             return false;
         }
 
-        // If all checks passed, return true
         return true;
     }
+
 
 
 
