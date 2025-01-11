@@ -43,7 +43,12 @@ public class Ex2Sheet implements Sheet {
     // Returns the Cell object at position (x, y).
     @Override
     public Cell get(int x, int y) {
-        return table[x][y];
+        if (isIn(x, y)) {
+
+            return table[x][y];
+        }
+        SCell out = new SCell("out of bounds");
+        return out;
     }
     // Returns a Cell object given its string reference (e.g., "A1").
     @Override
@@ -302,6 +307,9 @@ public class Ex2Sheet implements Sheet {
 
                 SCell sCell = (SCell) get(part); // Retrieve the referenced cell.
                 String refline = sCell.getData(); // Get the raw data from the referenced cell.
+              if (refline == null){
+                  return Double.POSITIVE_INFINITY;
+              }
 
                 // Check for cyclic dependencies; return negative infinity if detected.
                 if (computeOrder(refline, refX, refY, new HashSet<>()) == -1) {
